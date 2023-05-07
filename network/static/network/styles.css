@@ -1,0 +1,15 @@
+
+
+.container-fluid{
+    border-style: inset;
+    border-color: rgb(142, 56, 119);
+}
+
+.userTitle{
+    margin-top: 0.5rem;
+    cursor: pointer;
+}
+
+.contadorAndMg{
+    cursor: pointer;
+}

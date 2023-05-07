@@ -20,7 +20,7 @@ function Content(props) {
 
 
     function HandleSubmit(event) {
-      console.log("haaa")
+      event.preventDefault();
       let input = event.target.editContent;
       console.log(input.value)
 

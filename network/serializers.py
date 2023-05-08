@@ -23,7 +23,7 @@ class PostSerializer(ModelSerializer):
         fields = '__all__'
 
     def to_representation(self, instance):
-        # por cada modelo de post en el que se hace un get, entra a jugar este función.
+        # por cada modelo de post en el que se hace un get, entra a jugar esta función.
         # aca en data tenes la automatización de key, value de lo que hayas especificado en fields de un modelo especifico
         data = super().to_representation(instance)
 
@@ -32,7 +32,7 @@ class PostSerializer(ModelSerializer):
         # a las key y values de este modelo serializado le agregas esto:
         data['mg_state'] = mg_state
 
-        # aca haces la modifiacíon del timestamp.
+        # aca haces la modificacion del timestamp.
         dt = datetime.strptime(str(instance.timestamp.replace(tzinfo=None)), '%Y-%m-%d %H:%M:%S')
         formatted_dt = dt.strftime('%b %d, %Y, %I:%M %p')
         data['timestamp'] = formatted_dt
@@ -44,13 +44,36 @@ class LikeSerializer(ModelSerializer):
         model = Like
         fields = '__all__'
 
-class FollowSerializer(ModelSerializer):
+
+
+# !chequear si esta bien, y ver de utilizarlo en get profile function
+class ProfileSerializer(ModelSerializer):
+    posts = PostSerializer(many=True)
+
     class Meta:
-        model = FollowPerfil
-        fields = '__all__'
+        model = User
+        fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "posts",
+            "followers_count",
+            "following_count",
+            "is_follower",
+        )
+
+    followers_count = serializers.ReadOnlyField()
+    following_count = serializers.ReadOnlyField()
+    is_follower = serializers.SerializerMethodField()
+
+    def get_is_follower(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.followers.filter(id=request.user.id).exists()
+        return False
 
 
-    # def to_representation(self, instance):
-    #     follow = super().to_representation(instance)
-    #     follow['published_date'] = instance.follower_user.count()
-    #     return representation
+
+    

@@ -9,6 +9,7 @@ from rest_framework.decorators import api_view
 from .serializers import *
 from datetime import datetime
 from rest_framework import status
+from django.shortcuts import get_object_or_404
 
 from .models import *
 import pytz
@@ -145,110 +146,42 @@ def posts(request):
 
 @api_view(["GET", "POST"])
 def profile(request, user_profile_name):
+    user_profile = get_object_or_404(User, username=user_profile_name)
+
     if request.method == "GET":
-        json_response = []
+        # ? aca como tenes properties, podes llamar asi:
+        followers_count = user_profile.followers_count
+        following_count = user_profile.following_count
 
-        # aca agarras el usuario al cual se entro al perfil
-        user = User.objects.get(username=user_profile_name)
-
-        # este array contrendrá toda la info sobre seguidores, seguidos,etc.
-        follow_info = []
-
-        # agarras al query set de followPerfil que el user sea igual al user
-        follow_profile_model = FollowPerfil.objects.filter(user=user).first()
-        
-        
-        # agarras todos los usuarios que siguen y sigue este determinado usuario
-        try:
-            followers = follow_profile_model.followers.all()
-        except AttributeError:
-            followers = None
-
-        try:
-            following = follow_profile_model.following.all()
-        except AttributeError:
-            following = None
-
-        # agarras quien es el que entro a ver el perfil
-        watcher = request.user
-
-        # iteras sobre los seguidores que tiene y te preguntas si el watcher esta presente
-        if followers is not None and watcher in followers:
+        is_follower = False
+        if user_profile.followers.filter(id=request.user.id).exists():
             is_follower = True
-        else:
-            is_follower = False
 
-        # guardas el numero de seguidores y seguidos
-        if followers is not None:
-            followers = followers.count()
-        else:
-            followers = 0
-        if following is not None:
-            following = following.count()
-        else:
-            following = 0
+        posts = Post.objects.filter(user_poster=user_profile).order_by("-timestamp")
+        serializer = PostSerializer(posts, many=True, context={"request": request})
 
-        # con toda la información lista creas un diccionario que lo guardas en el array de arriba
-        followDic = {
-            "following": following,
-            "followers": followers,
+        response_data = {
+            "posts": serializer.data,
+            "followers_count": followers_count,
+            "following_count": following_count,
             "is_follower": is_follower,
         }
-        follow_info.append(followDic)
 
-        # filtras todos los post que hizo ese usuario
-        posts = Post.objects.filter(user_poster=user).order_by("-timestamp")
-
-        serializer = PostSerializer(posts, many=True, context={"request": request}).data
-
-        # post_info = []
-        # for post in posts:
-        #     # esto lo haces para modificar los valores de timestamp
-        #     serializer_posts = PostSerializer(post).data
-        #     dt = datetime.strptime(str(post.timestamp.replace(tzinfo=None)), '%Y-%m-%d %H:%M:%S')
-        #     formatted_dt = dt.strftime('%b %d, %Y, %I:%M %p')
-        #     serializer_posts["timestamp"] = formatted_dt
-        #     if Like.objects.filter(user_mg=request.user.id, post=post, mg_state=True).exists():
-        #         serializer_posts['mg_state'] = True
-        #     else:
-        #         serializer_posts['mg_state'] = False
-        # post_info.append(serializer)
-
-        # la respuesta va a ser un array que contenga el array de post_info e follow_info
-        json_response = [serializer, follow_info]
-
-        return Response(json_response, status=status.HTTP_200_OK)
+        return Response(response_data, status=status.HTTP_200_OK)
 
     elif request.method == "POST":
-        data = request.data
-        is_follow_user = data.get("is_follow_user")
+        is_follow_user = request.data.get("is_follow_user")
 
-        profile_of_request = User.objects.get(username=user_profile_name)
-
-        follow_profile_model = FollowPerfil.objects.filter(
-            user=profile_of_request
-        ).first()
-
-        watcher = request.user
-
-        following_watcher_model = FollowPerfil.objects.filter(user=watcher).first()
-
-        # ! aca te da error si es que no existe follow perfil de ese usuario, lo tendrias que creas uno por uno, por eso crees que es mejor que lo pongas a estos campos en user.
         if is_follow_user:
-            try:
-                follow_profile_model.followers.add(watcher)
-            except AttributeError:
-                follow_profile_model.followers
-            try:
-                following_watcher_model.following.add(profile_of_request)
-            except AttributeError:
-                follow_profile_model.following.create(watcher)
-
+            user_profile.followers.add(request.user)
+            request.user.following.add(user_profile)
+            message = "Successfully followed user."
         else:
-            follow_profile_model.followers.remove(watcher)
-            following_watcher_model.following.remove(profile_of_request)
+            user_profile.followers.remove(request.user)
+            request.user.following.remove(user_profile)
+            message = "Successfully unfollowed user."
 
-        return Response({"message": "succesfull following"}, status=status.HTTP_200_OK)
+        return Response({"message": message}, status=status.HTTP_200_OK)
 
 
 # ? por defecto many es false, no hace falta que lo escribas
@@ -329,7 +262,7 @@ def following(request):
     # ! poner esto enves del 2
 
     # agarras al query set de followPerfil que el user sea igual a quien hizo la consulta
-    follow_profile_model = FollowPerfil.objects.filter(user=2).first()
+    follow_profile_model = User.objects.filter(user=2).first()
 
     # agarras todos los usuarios que sigue este determinado usuario
     try:

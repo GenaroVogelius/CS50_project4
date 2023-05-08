@@ -4,23 +4,36 @@ from django.core.exceptions import ValidationError
 
 
 class User(AbstractUser):
-    pass
+    followers = models.ManyToManyField(
+        "self", related_name="followers_of", blank=True, null=True
+    )
+    following = models.ManyToManyField(
+        "self", related_name="following_of", blank=True, null=True
+    )
+
+    @property
+    def followers_count(self):
+        return self.followers.count()
+    
+    @property
+    def following_count(self):
+        return self.following.count()
 
     def __str__(self):
         return self.username
 
 
-class FollowPerfil(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    followers = models.ManyToManyField(
-        User, related_name="followers_of", blank=True, null=True
-    )
-    following = models.ManyToManyField(
-        User, related_name="following_of", blank=True, null=True
-    )
+# class FollowPerfil(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE)
+#     followers = models.ManyToManyField(
+#         User, related_name="followers_of", blank=True, null=True
+#     )
+#     following = models.ManyToManyField(
+#         User, related_name="following_of", blank=True, null=True
+#     )
 
-    def __str__(self):
-        return f"{self.user} has {self.followers.count()} followers and is following {self.following.count()}"
+#     def __str__(self):
+#         return f"{self.user} has {self.followers.count()} followers and is following {self.following.count()}"
 
 
     # ? instead of llamar a count() en views.py podes hacer esto, @property decorator is used to define a method that can be accessed like a read-only attribute. It allows you to define a method on a class that can be called like an attribute, without having to include parentheses. Despues si pones print(follow_profile_model.followers_count) te sale.

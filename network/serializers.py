@@ -37,6 +37,8 @@ class PostSerializer(ModelSerializer):
         formatted_dt = dt.strftime('%b %d, %Y, %I:%M %p')
         data['timestamp'] = formatted_dt
 
+        data['posts_count'] = self.context.get('posts_count', 0)
+
         return data
         
 class LikeSerializer(ModelSerializer):

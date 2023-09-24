@@ -2,20 +2,39 @@ import { useState, useEffect, useContext } from "react";
 import { DatosDeContexto } from "../context/TestContext";
 import { Link } from "react-router-dom";
 
-function Pagination() {
-  const { fromNumberOfPagination, setFromNumberOfPagination } =
-    useContext(DatosDeContexto);
+function Pagination(props) {
+  const [link, setLink] = useState(
+    props.link
+  );
+
+  useEffect(() => {
+    setLink(props.link);
+  }, [props.link])
+
   
-  const pages = 5
-  const totalPages = 15
+  const {
+    fromNumberOfPagination,
+    setFromNumberOfPagination,
+    totalNumberOfPages,
+    pages,
+    postsDataThird,
+  } = useContext(DatosDeContexto);
+
+  
+  
+
   const [numbers, setNumbers] = useState([1, 2, 3])
   const [activeNumber, setActiveNumber] = useState(1)
   const [isBackAvailabe, setIsBackAvailable] = useState(false);
-  const [nextOrPreview, setNextOrPreview] = useState(totalPages);
+  const [nextOrPreview, setNextOrPreview] = useState(30);
 
+  
+  
 
 
   function pagination(action, number = null) {
+
+    
     if (action === "backward") {
 
       if (activeNumber === numbers[0]) {
@@ -50,7 +69,7 @@ function Pagination() {
       if (activeNumber === [...numbers].pop()) {
         setFromNumberOfPagination(fromNumberOfPagination + nextOrPreview);
         setNumbers([numbers[0] + 3, numbers[1] + 3, [...numbers].pop() + 3]);
-        setNextOrPreview(totalPages);
+        setNextOrPreview(nextOrPreview - pages);
         setActiveNumber(numbers[0] + 3);
       }
     }
@@ -58,6 +77,7 @@ function Pagination() {
       if (action === "clickNumber") {
         // se da esta condición cuando vas hacia adelante con los numeros
         if (activeNumber < number) {
+          setIsBackAvailable(true);
 
           // esto significa que sumaste de a 1
           if (activeNumber === number - 1) {
@@ -84,7 +104,8 @@ function Pagination() {
             setNextOrPreview(nextOrPreview + pages * 2);
           }
         }
-      
+        
+        
         setActiveNumber(number);
       }
 
@@ -92,51 +113,74 @@ function Pagination() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   
-  return (
-    <nav aria-label="...">
-      <ul className="pagination justify-content-center">
-        <li className={`page-item ${isBackAvailabe ? "" : "disabled"}`}>
-          <Link
-            to={`/`}
-            className="page-link"
-            onClick={() => pagination("backward")}
-          >
-            Previous
-          </Link>
-        </li>
-        {/* forEach() doesn't actually return anything por eso usas map*/}
-        {/* como aca tenes un if, despues de la flecha va { }, sino iria (), como es logica va el {} */}
-        {numbers.map((number) => (
-          <li
-            className={`page-item ${activeNumber === number ? "active " : ""}`}
-            aria-current="page"
-            key={number}
-          >
-            {activeNumber === number ? (
-              <span className="page-link">{number}</span>
-            ) : (
-              <Link
-                to={`/`}
-                className="page-link"
-                onClick={() => pagination("clickNumber", number)}
-              >
-                {number}
-              </Link>
-            )}
+
+    
+    return (
+      <nav className="m-3 p-2" aria-label="pagination">
+        <ul className="pagination justify-content-center">
+          <li className={`page-item ${isBackAvailabe ? "" : "disabled"} `}>
+            <Link
+              to={`${link}`}
+              className="page-link"
+              onClick={() => pagination("backward")}
+            >
+              Previous
+            </Link>
           </li>
-        ))}
-        <li className="page-item">
-          <Link
-            to={`/`}
-            className="page-link"
-            onClick={() => pagination("forward")}
+          {/* forEach() doesn't actually return anything por eso usas map*/}
+          {/* como aca tenes un if, despues de la flecha va { }, sino iria (), como es logica va el {} */}
+          {numbers.map((number) => (
+            <li
+              className={`page-item ${
+                activeNumber === number ? "active " : ""
+              } ${
+                number === numbers[1]
+                  ? fromNumberOfPagination + pages <= totalNumberOfPages ||
+                    activeNumber >= number
+                    ? ""
+                    : "disabled"
+                  : number === numbers[2]
+                  ? fromNumberOfPagination + pages*2 < totalNumberOfPages ||
+                    activeNumber >= number || fromNumberOfPagination + pages < totalNumberOfPages
+                    ? ""
+                    : "disabled"
+                  : ""
+              } `}
+              aria-current="page"
+              key={number}
+            >
+              {activeNumber === number ? (
+                <span className="page-link">{number}</span>
+              ) : (
+                <Link
+                  to={`${link}`}
+                  className="page-link"
+                  onClick={() => pagination("clickNumber", number)}
+                >
+                  {number}
+                </Link>
+              )}
+            </li>
+          ))}
+          <li
+            className={`page-item ${
+              fromNumberOfPagination + pages < totalNumberOfPages
+                ? ""
+                : "disabled"
+            }`}
           >
-            Next
-          </Link>
-        </li>
-      </ul>
-    </nav>
-  );
-            }
+            <Link
+              to={`${link}`}
+              className="page-link"
+              onClick={() => pagination("forward")}
+            >
+              Next
+            </Link>
+          </li>
+        </ul>
+      </nav>
+    );
+  }
+            
 
 export default Pagination;

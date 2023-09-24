@@ -1,9 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.urls import reverse
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import HttpResponse, HttpResponseRedirect, render
-from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.shortcuts import  render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .serializers import *
@@ -23,95 +20,73 @@ def index(request):
     return render(request, "network/index.html")
 
 
+@api_view(["POST"])
 def login_view(request):
-    if request.method == "POST":
-        # Attempt to sign user in
-        username = request.POST["username"]
-        password = request.POST["password"]
-        user = authenticate(request, username=username, password=password)
-
-        # Check if authentication successful
-        if user is not None:
-            login(request, user)
-            return HttpResponseRedirect(reverse("index"))
-        else:
-            return render(
-                request,
-                "network/login.html",
-                {"message": "Invalid username and/or password."},
-            )
+    # Attempt to sign user in
+    data = request.data
+    username = data.get("username")
+    password = data.get("password")
+    user = authenticate(request, username=username, password=password)
+    
+    # Check if authentication successful
+    if user is not None:
+        login(request, user)
+        return Response({"is_log_in":"true"}, status=status.HTTP_200_OK)
     else:
-        return render(request, "network/login.html")
+        return Response({"is_log_in": "false",}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(["GET"])
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse("index"))
+    return Response({"LOG": "log out succesfull"}, status=status.HTTP_200_OK)
 
-
+@api_view(["POST"])
 def register(request):
-    if request.method == "POST":
-        username = request.POST["username"]
-        email = request.POST["email"]
+    data = request.data
+    username = data.get("username")
+    email = data.get("email")
+    password = data.get("password")
 
-        # Ensure password matches confirmation
-        password = request.POST["password"]
-        confirmation = request.POST["confirmation"]
-        if password != confirmation:
-            return render(
-                request, "network/register.html", {"message": "Passwords must match."}
-            )
+    # Attempt to create new user
+    try:
+        user = User.objects.create_user(username, email, password)
+        user.save()
+    except IntegrityError:
+        return Response({"message": "Username already taken."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    login(request, user)
+    return Response({"message":"true"}, status=status.HTTP_200_OK)
 
-        # Attempt to create new user
-        try:
-            user = User.objects.create_user(username, email, password)
-            user.save()
-        except IntegrityError:
-            return render(
-                request, "network/register.html", {"message": "Username already taken."}
-            )
-        login(request, user)
-        return HttpResponseRedirect(reverse("index"))
-    else:
-        return render(request, "network/register.html")
 
 
 @api_view(["GET", "POST", "PATCH"])
-@ensure_csrf_cookie
 def posts(request):
     if request.method == "GET":
+        
+
         # inicializas la clase de pagination
         pagination_class = LimitOffsetPagination()
         posts = Post.objects.all().order_by("-timestamp")
-        # dentro de la clase llamas al metodo paginate_queryset
-        paginated_posts = pagination_class.paginate_queryset(posts, request)
+        posts_count = posts.count()
+        # dentro de la clase llamas al metodo paginate_queryset, que recibe como primer parametro que es lo que va a devolver y como segundo parametro la request, dentro de la request va a haber algo llamado offset que seria desde donde te trae data, por ej posts/?offset=7 te trae los post desde el 7 en adelante.
+
+        paginated_posts = pagination_class.paginate_queryset(posts, request, request.path_info)
+        # en paginated posts se guardan esos posts y los serializas abajo
+
         
         serializer = PostSerializer(
-            paginated_posts, many=True, context={"request": request}
+            paginated_posts, many=True, context={"request": request, "posts_count": posts_count}
         )
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-        # post_list= []
-        # for post in posts:
-        #     serializer_post_data = PostSerializer(post).data
-        #     if Like.objects.filter(user_mg=request.user.id, post=post, mg_state=True).exists():
-        #         serializer_post_data['mg_state'] = True
-        #     else:
-        #         serializer_post_data['mg_state'] = False
-
-        #     dt = datetime.strptime(str(post.timestamp.replace(tzinfo=None)), '%Y-%m-%d %H:%M:%S')
-        #     formatted_dt = dt.strftime('%b %d, %Y, %I:%M %p')
-
-        #     serializer_post_data["timestamp"] = formatted_dt
-        #     post_list.append(serializer_post_data)
-
-        return Response(post_list, status=status.HTTP_200_OK)
+        
+        
+        return Response({"posts":serializer.data}, status=status.HTTP_200_OK)
 
     if request.method == "POST":
         data = request.data
         content = data.get("content")
         timestamp = data.get("timestamp")
-        print(timestamp)
+        
 
         if not content:
             return Response(
@@ -157,28 +132,38 @@ def profile(request, user_profile_name):
         if user_profile.followers.filter(id=request.user.id).exists():
             is_follower = True
 
+        pagination_class = LimitOffsetPagination()
         posts = Post.objects.filter(user_poster=user_profile).order_by("-timestamp")
-        serializer = PostSerializer(posts, many=True, context={"request": request})
+        posts_count = posts.count()
+        # paginated_posts = pagination_class.paginate_queryset(posts, request)
+        paginated_posts = pagination_class.paginate_queryset(posts, request, request.path_info)
+
+
+        serializer = PostSerializer(paginated_posts, many=True, context={"request": request, "posts_count": posts_count})
 
         response_data = {
             "posts": serializer.data,
-            "followers_count": followers_count,
-            "following_count": following_count,
+            "followers": followers_count,
+            "following": following_count,
             "is_follower": is_follower,
         }
-
+            
+        
         return Response(response_data, status=status.HTTP_200_OK)
 
     elif request.method == "POST":
         is_follow_user = request.data.get("is_follow_user")
+        user_profile_name = request.data.get("profile")
+        user_profile_id = get_object_or_404(User, username=user_profile_name)
+
 
         if is_follow_user:
-            user_profile.followers.add(request.user)
-            request.user.following.add(user_profile)
+            user_profile_id.followers.add(request.user)
+            request.user.following.add(user_profile_id)
             message = "Successfully followed user."
         else:
-            user_profile.followers.remove(request.user)
-            request.user.following.remove(user_profile)
+            user_profile_id.followers.remove(request.user)
+            request.user.following.remove(user_profile_id)
             message = "Successfully unfollowed user."
 
         return Response({"message": message}, status=status.HTTP_200_OK)
@@ -209,7 +194,7 @@ def post_edit(request, pk):
 @api_view(["PATCH"])
 def like(request, post_pk):
     if request.method == "PATCH":
-        print(request.data.get("is_mg_positive"))
+        
 
         try:
             # Validate the input
@@ -251,46 +236,36 @@ def like(request, post_pk):
 def user_request(request):
     if request.method == "GET":
         usuario = str(request.user)
-        # usuario = "genaro"
+        # usuario = "request.user"
         return Response({"usuario": usuario})
 
 
 @api_view(["GET"])
 def following(request):
-
-    # watcher = request.user.id
+    watcher = request.user.id
     # ! poner esto enves del 2
 
     # agarras al query set de followPerfil que el user sea igual a quien hizo la consulta
-    follow_profile_model = User.objects.filter(user=2).first()
+    follow_profile_model = User.objects.filter(id=watcher).first()
 
     # agarras todos los usuarios que sigue este determinado usuario
-    try:
-        following_users = follow_profile_model.following.all()
-    except AttributeError:
-        return Response({"message": "no users following"}, status=status.HTTP_200_OK)
+    
+    following_users = follow_profile_model.following.all()
 
     # agarras todos los posts que hicieron los usuario que sigue esta persona.
     posts = Post.objects.filter(user_poster__in=following_users).order_by("-timestamp")
 
+    
+    if not posts:
+        return Response({"message": "It seems that there are not any posts"})
+
+    
     # ? __in is used in queries to filter objects that match a condition from a list of values. por ej. Model.objects.filter(field__in=[value1, value2, ...])
 
-    serializer = PostSerializer(posts, many=True, context={"request": request}).data
-    # post_list= []
-    # for post in posts:
-    #     serializer_post_data = PostSerializer(post).data
-    #     if Like.objects.filter(user_mg=request.user.id, post=post, mg_state=True).exists():
-    #         serializer_post_data['mg_state'] = True
-    #     else:
-    #         serializer_post_data['mg_state'] = False
+    serializer = PostSerializer(posts, many=True, context={"request": request})
+    
 
-    #     dt = datetime.strptime(str(post.timestamp.replace(tzinfo=None)), '%Y-%m-%d %H:%M:%S')
-    #     formatted_dt = dt.strftime('%b %d, %Y, %I:%M %p')
-
-    #     serializer_post_data["timestamp"] = formatted_dt
-    #     post_list.append(serializer_post_data)
-
-    return Response(serializer, status=status.HTTP_200_OK)
+    return Response({"posts":serializer.data}, status=status.HTTP_200_OK)
 
 
 # ? por más que no vayas a usar un get y quieras hacer solo un put esta bueno en desarrolo ponerlo para ver si estas agarrando los datos que queres.

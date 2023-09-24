@@ -1,0 +1,81 @@
+.title {
+  letter-spacing: 0.15em;
+  text-decoration: underline;
+  text-align: center;
+  color: rgb(29, 155, 240);
+}
+
+.bird-svg {
+  white-space: pre-wrap;
+  text-align: center;
+  word-wrap: break-word;
+  display: inline-block;
+  fill: currentcolor;
+  max-width: 100%;
+  position: relative;
+  vertical-align: text-bottom;
+  flex-grow: 1;
+  width: 2rem;
+  color: white;
+  height: 2rem;
+}
+
+.title-nav {
+  font-size: 1.8rem;
+  user-select: none;
+  list-style: none;
+  text-align: inherit;
+  color: white;
+  border: 0 solid black;
+}
+
+.posts {
+  background-color: rgb(240, 242, 245);
+}
+
+.card {
+  border-radius: 8px;
+  border-color: transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.text-area-create-post,
+.text-area-content {
+  resize: none;
+  font-weight: bolder;
+}
+
+.content {
+  text-align: center;
+  text-transform: capitalize;
+  font-weight: bolder;
+}
+
+.mg-span,
+.mg-span-animated {
+  cursor: pointer;
+}
+
+.mg-span-animated {
+  animation-duration: 0.45s;
+  animation-name: like-button-animation;
+  animation-timing-function: ease-in-out;
+  transform: scale(1);
+}
+
+@keyframes like-button-animation {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.2);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/*# sourceMappingURL=style.css.map */

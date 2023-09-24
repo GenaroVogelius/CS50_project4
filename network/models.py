@@ -5,10 +5,10 @@ from django.core.exceptions import ValidationError
 
 class User(AbstractUser):
     followers = models.ManyToManyField(
-        "self", related_name="followers_of", blank=True, null=True
+        "self", related_name="followers_of", blank=True, null=True, symmetrical=False,
     )
     following = models.ManyToManyField(
-        "self", related_name="following_of", blank=True, null=True
+        "self", related_name="following_of", blank=True, null=True, symmetrical=False,
     )
 
     @property
@@ -45,7 +45,7 @@ class User(AbstractUser):
 
 class Post(models.Model):
     user_poster = models.ForeignKey(
-        "User", on_delete=models.CASCADE, related_name="poster_uploaded"
+        User, on_delete=models.CASCADE, related_name="poster_uploaded"
     )
     content = models.TextField()
     timestamp = models.DateTimeField()

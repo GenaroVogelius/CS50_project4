@@ -13,6 +13,7 @@ function BtnFollow(props) {
     const { username } = useParams();
 
 
+
     function HandleFollow(requestFollow) {
 
         // front-end update
@@ -37,32 +38,16 @@ function BtnFollow(props) {
       },
       body: JSON.stringify({
         is_follow_user: requestFollow,
+        profile: username,
       }),
     });
 
     
   }
 
+  useEffect(()=> {setFollowInformation(props.FollowInformation)}, [props.FollowInformation])
 
-      if (followInformation.btnState) {
-          return (
-            <>
-              <h5 className="btn btn-info mt-0 mb-0">
-                Followers: {followInformation.followersNumber}
-              </h5>
-              <h5 className="btn btn-info mt-0 mb-0">
-                Follow: {followInformation.followNumber}
-              </h5>
-              <button
-                type="button"
-                className="btn btn-outline-success"
-                onClick={() => HandleFollow(false)}
-              >
-                Unfollow
-              </button>
-            </>
-          );
-      } else {
+      
         
         if (userRequest == followInformation.userPoster) {
           return (
@@ -79,24 +64,36 @@ function BtnFollow(props) {
         else {
             return (
               <>
-                <h5 className="btn btn-info mt-0 mb-0">
-                  Followers: {followInformation.followersNumber}
-                </h5>
-                <h5 className="btn btn-info mt-0 mb-0">
-                  Follow: {followInformation.followNumber}
-                </h5>
-                <button
-                  type="button"
-                  className="btn btn-outline-success"
-                  onClick={() => HandleFollow(true)}
-                >
-                  Follow
-                </button>
+                <span className="mr-3">
+                  <strong>{followInformation.followNumber}</strong>{" "}
+                  <span className="text-muted">Following</span>
+                </span>
+                <span className="mr-3">
+                  <strong>{followInformation.followersNumber}</strong>{" "}
+                  <span className="text-muted">Followers</span>
+                </span>
+                {followInformation.btnState ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => HandleFollow(false)}
+                  >
+                    Unfollow
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => HandleFollow(true)}
+                  >
+                    Follow
+                  </button>
+                )}
               </>
             );
         }
       }
     
-}
+
 
 export default BtnFollow

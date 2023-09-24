@@ -14,7 +14,6 @@ class FollowForm(forms.ModelForm):
     
     def clean_followers(self):
         user_id = self.instance.pk
-        print(user_id)
         followers = self.cleaned_data.get('followers')
         
         if followers.filter(pk=user_id).exists():

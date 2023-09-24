@@ -5,8 +5,13 @@ import { HashRouter, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Following from "./pages/Following";
+import Log from "./pages/Log";
+import Register from "./pages/Register"
 
-// NO ENTIENDO POR QUE Following con F mayuscula y profile con miniscula la f.
+
+// styles:
+import "./styles/css/style.css";
+
 
 
 function App() {
@@ -15,6 +20,8 @@ function App() {
     <HashRouter>
       <Nav />
       <Route path="/" exact component={Index} />
+      <Route path="/login" exact component={Log} />
+      <Route path="/register" exact component={Register} />
       <Route path="/profile/:username" exact component={Profile} />
       <Route path="/following" exact component={Following} />
     </HashRouter>
